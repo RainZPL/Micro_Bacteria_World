@@ -3,29 +3,47 @@ import { WorldManager } from './world/worldManager.js';
 import { AudioEngine } from './audio/audioEngine.js';
 import { HandTracker } from './handTracker.js';
 
+// Global Error Handler for deployment debugging
+// Global Error Handler for deployment debugging
+window.onerror = function (msg, url, line, col, error) {
+    const errorMsg = `Error: ${msg}\nLine: ${line}`;
+    const hint = document.getElementById('task-hint');
+    const title = document.getElementById('task-title');
+    if (hint) hint.textContent = errorMsg;
+    if (title) title.textContent = "CRASHED";
+    console.error("Global Error:", error);
+    return false;
+};
+
 class App {
     constructor() {
-        this.ui = new UI();
-        this.audio = new AudioEngine();
-        this.world = new WorldManager(document.getElementById('canvas-container'));
-        this.world.setUI(this.ui);
-        this.tracker = new HandTracker(document.getElementById('video-element'));
+        try {
+            this.ui = new UI();
+            this.audio = new AudioEngine();
+            this.world = new WorldManager(document.getElementById('canvas-container'));
+            this.world.setUI(this.ui);
+            this.tracker = new HandTracker(document.getElementById('video-element'));
 
-        // Unlock Audio & Start Camera
-        // Initial Prompt
-        this.ui.updateTask("READY", "Click anywhere to enable Camera & Audio");
 
-        // Unlock Audio & Start Camera
-        document.body.addEventListener('click', () => {
-            this.ui.updateTask("INITIALIZING", "Starting Camera...");
-            if (!this.audio.ready) this.audio.init();
-            this.tracker.start()
-                .then(() => this.ui.updateTask("EXPLORE", "Use gestures to interact"))
-                .catch(err => this.ui.updateTask("ERROR", "Camera failed: " + err.message));
-        }, { once: true });
+            // Unlock Audio & Start Camera
+            // Initial Prompt
+            this.ui.updateTask("READY", "Click anywhere to enable Camera & Audio");
 
-        this.lastTime = performance.now();
-        this.loop();
+            // Unlock Audio & Start Camera
+            document.body.addEventListener('click', () => {
+                this.ui.updateTask("INITIALIZING", "Starting Camera...");
+                if (!this.audio.ready) this.audio.init();
+                this.tracker.start()
+                    .then(() => this.ui.updateTask("EXPLORE", "Use gestures to interact"))
+                    .catch(err => this.ui.updateTask("ERROR", "Camera failed: " + err.message));
+            }, { once: true });
+
+            this.lastTime = performance.now();
+            this.loop();
+        } catch (e) {
+            console.error("Init Error:", e);
+            if (this.ui) this.ui.updateTask("CRASHED", "Init Error: " + e.message);
+        }
     }
 
     loop() {
