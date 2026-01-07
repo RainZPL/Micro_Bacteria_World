@@ -20,7 +20,7 @@ export class HandTracker {
 
         this.hands = new Hands({
             locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`;
             }
         });
 
@@ -42,9 +42,14 @@ export class HandTracker {
         });
     }
 
-    start() {
-        this.camera.start();
-        console.log("Camera Started");
+    async start() {
+        try {
+            await this.camera.start();
+            console.log("Camera Started");
+        } catch (e) {
+            console.error("Camera failed to start:", e);
+            throw e;
+        }
     }
 
     _process(results) {

@@ -12,9 +12,16 @@ class App {
         this.tracker = new HandTracker(document.getElementById('video-element'));
 
         // Unlock Audio & Start Camera
+        // Initial Prompt
+        this.ui.updateTask("READY", "Click anywhere to enable Camera & Audio");
+
+        // Unlock Audio & Start Camera
         document.body.addEventListener('click', () => {
+            this.ui.updateTask("INITIALIZING", "Starting Camera...");
             if (!this.audio.ready) this.audio.init();
-            this.tracker.start();
+            this.tracker.start()
+                .then(() => this.ui.updateTask("EXPLORE", "Use gestures to interact"))
+                .catch(err => this.ui.updateTask("ERROR", "Camera failed: " + err.message));
         }, { once: true });
 
         this.lastTime = performance.now();
