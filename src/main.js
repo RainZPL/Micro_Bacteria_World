@@ -30,12 +30,22 @@ class App {
             this.ui.updateTask("READY", "Click anywhere to enable Camera & Audio");
 
             // Unlock Audio & Start Camera
-            document.body.addEventListener('click', () => {
+            document.body.addEventListener('click', async () => {
                 this.ui.updateTask("INITIALIZING", "Starting Camera...");
-                if (!this.audio.ready) this.audio.init();
-                this.tracker.start()
-                    .then(() => this.ui.updateTask("EXPLORE", "Use gestures to interact"))
-                    .catch(err => this.ui.updateTask("ERROR", "Camera failed: " + err.message));
+                try {
+                    // Initialize audio first to unlock audio context
+                    if (!this.audio.isInitialized) {
+                        this.audio.init();
+                        // Resume audio context if suspended (required for user interaction)
+                        this.audio.resume();
+                    }
+                    
+                    await this.tracker.start();
+                    this.ui.updateTask("EXPLORE", "Use gestures to interact");
+                } catch (err) {
+                    this.ui.updateTask("ERROR", "Camera failed: " + err.message);
+                    console.error("Initialization error:", err);
+                }
             }, { once: true });
 
             this.lastTime = performance.now();

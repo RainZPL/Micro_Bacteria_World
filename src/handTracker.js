@@ -20,6 +20,7 @@ export class HandTracker {
 
         this.hands = new Hands({
             locateFile: (file) => {
+                // Use specific version CDN with correct path structure
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/${file}`;
             }
         });
@@ -35,7 +36,11 @@ export class HandTracker {
 
         this.camera = new Camera(this.video, {
             onFrame: async () => {
-                await this.hands.send({ image: this.video });
+                try {
+                    await this.hands.send({ image: this.video });
+                } catch (e) {
+                    console.warn("Error sending frame to MediaPipe:", e);
+                }
             },
             width: 640,
             height: 480 // Lower res sufficient for gesture
@@ -44,11 +49,31 @@ export class HandTracker {
 
     async start() {
         try {
+            // Check if we're in a secure context (HTTPS)
+            if (!window.isSecureContext) {
+                throw new Error("Camera requires HTTPS connection. Please use HTTPS.");
+            }
+            
+            // Check if camera API is available
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("Camera API not supported by your browser.");
+            }
+            
             await this.camera.start();
+            this.ready = true;
             console.log("Camera Started");
         } catch (e) {
             console.error("Camera failed to start:", e);
-            throw e;
+            // Add more specific error messages for common issues
+            if (e.name === 'NotAllowedError') {
+                throw new Error("Camera access denied. Please allow camera permission in your browser settings.");
+            } else if (e.name === 'NotFoundError') {
+                throw new Error("No camera found. Please connect a camera device.");
+            } else if (e.name === 'NotReadableError') {
+                throw new Error("Camera is already in use by another application.");
+            } else {
+                throw e;
+            }
         }
     }
 
