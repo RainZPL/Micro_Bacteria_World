@@ -1,0 +1,312 @@
+Hand Gesture Microscopic Exploration
+GDD-Lite + Engineering Specification (Final)
+1. Project Positioning
+
+Project Type
+Browser-based hand-gesture controlled exploratory game.
+
+Core Metaphor
+The hand becomes a microscope interface for navigating different biological scales (macro → micro → nano).
+
+Primary Goal
+Use embodied hand gestures (pinch / rotate / fist) to explore three biological scenes and complete a final Visual Turing Test (VTT).
+
+Target Platform
+
+Desktop browser (Chrome recommended)
+
+Standard laptop webcam
+
+No backend, static deployment
+
+2. Technical Constraints (Hard Rules)
+
+Framework: Vite + Vanilla JS
+
+Rendering: Three.js
+
+Hand Tracking: @mediapipe/hands
+
+Max Hands: 1
+
+Target FPS: 30 FPS
+
+Must work without external servers
+
+3. File & Module Structure (Fixed)
+index.html
+src/
+ ├─ main.js              // App bootstrap
+ ├─ handTracker.js       // MediaPipe init + gesture metrics
+ ├─ sceneManager.js      // Three.js scenes + LoD switching
+ ├─ gameState.js         // Task A → B → C → VTT state machine
+ ├─ ui.js                // HUD & debug overlay
+ ├─ vtt.js               // Visual Turing Test logic
+ └─ assets/
+    └─ vtt/
+       ├─ img01.png
+       ├─ img02.png
+       └─ questions.json
+README.md
+
+4. Hand Gesture Metrics (Implementation-Level Spec)
+4.1 Landmark References
+
+wrist
+
+thumb_tip
+
+index_tip
+
+index_mcp
+
+pinky_mcp
+
+all five finger tips
+
+4.2 Normalization Reference
+refScale = distance(wrist, index_mcp)
+
+4.3 Pinch → Zoom
+pinchRaw = distance(thumb_tip, index_tip) / refScale
+pinchNorm = clamp01((pinchRaw - 0.15) / 0.35)
+
+zoom = lerp(1.0, 4.0, Math.pow(pinchNorm, 0.6))
+
+4.4 Fist (Stress Trigger)
+avgFingerDist = average(distance(tip_i, palmCenter))
+fist = 1.0 - clamp01(avgFingerDist / refScale)
+
+// fist > 0.75 → stress state
+
+4.5 Rotate
+
+Simplified yaw estimation:
+
+dir = normalize(index_mcp - wrist)
+yaw = atan2(dir.x, dir.z)
+
+
+Track cumulative rotation:
+
+rotateDelta += abs(yaw - lastYaw)
+
+4.6 Smoothing (Mandatory)
+
+All gesture metrics:
+
+smoothValue = lerp(prev, current, 0.2)
+
+5. Scene Design (Low-Cost Visual Encoding)
+Scene L1 – Slime Mold Network (Macro)
+
+Visual: branching lines + flowing particles
+
+Motion: slow expansion / pulsing
+
+Purpose: orientation & density perception
+
+Scene L2/L3 – Aspergillus Spore Head
+
+Visual: spherical core + radial spike points
+
+Motion: subtle rotation
+
+Purpose: surface structure inspection
+
+Scene L3 – Staphylococcus Division Groove
+
+Visual: clustered spheres with visible groove band
+
+Motion: compression reaction to stress
+
+Purpose: nanoscale detail & pressure response
+
+6. Game Progression Logic (State Machine)
+INIT
+ ↓
+TASK_A
+ ↓
+TASK_B
+ ↓
+TASK_C
+ ↓
+VTT
+ ↓
+RESULT
+
+
+Handled exclusively in gameState.js.
+
+7. Task Specifications (Critical Section)
+Task A – Find Dense Zone (L1)
+
+Goal
+Locate a hidden high-density region in the slime mold scene.
+
+Target
+
+denseZone = {
+  position: Vector3,
+  radius: 0.6
+}
+
+
+Completion Conditions
+
+Camera forward vector within 8° of target direction
+
+zoom between 1.2 – 2.0
+
+Continuous hold for 3.0 seconds
+
+Tolerance
+
+Up to 0.25s interruption allowed without reset
+
+Task B – Find Spike Structure (L2/L3)
+
+Goal
+Identify spike area on fungal spore head.
+
+Target
+
+spikeSpot = {
+  position: Vector3,
+  radius: 0.4
+}
+
+
+Completion Conditions
+
+zoom ≥ 2.5
+
+target within camera center cone (8°)
+
+Hold for 3.0 seconds
+
+Task C – Stress Observation (L3)
+
+Goal
+Observe bacterial division under mechanical stress.
+
+Completion Conditions (ALL REQUIRED)
+
+zoom ≥ 3.5
+
+rotateDelta ≥ 1.5 radians (accumulated)
+
+fist ≥ 0.75 triggers stress mode
+
+Maintain stress mode 3.0 seconds
+
+Stress Visual Feedback
+
+Particle inward force
+
+Color shift to high-contrast palette
+
+Slight pulsation or flicker
+
+8. Visual Turing Test (VTT)
+Data Format
+
+src/assets/vtt/questions.json
+
+[
+  {
+    "id": 1,
+    "image": "img01.png",
+    "options": ["AI", "Human", "Simulation", "Real"],
+    "answer": 2
+  }
+]
+
+Rules
+
+5 questions minimum
+
+4 choices per question
+
+15 seconds per question
+
+Auto-advance on timeout
+
+Metrics Recorded
+
+Correct rate (%)
+
+Average reaction time
+
+Total completion time
+
+9. UI Requirements
+Always Visible
+
+Current Task (A/B/C/VTT)
+
+Progress bar
+
+Timer
+
+Debug Overlay (Toggleable)
+
+Zoom value
+
+Fist value
+
+Rotation delta
+
+FPS counter
+
+Feedback
+
+Missing condition hints (e.g. “Rotate more”, “Apply pressure”)
+
+10. Performance & Fault Tolerance
+Performance
+
+Initial particle count: ≤ 20k
+
+FPS < 28 → reduce particles by 10%
+
+FPS > 35 → recover slowly (max cap)
+
+Hand Loss
+
+No hand detected:
+
+Freeze camera movement
+
+Display “Hand not detected”
+
+Multi-hand input ignored (maxNumHands = 1)
+
+11. Non-Mandatory Extension Hooks (Do NOT implement fully)
+function getAiParams(handMetrics) {
+  // Placeholder for AI-driven modulation
+}
+
+audioEngine.update(params)
+// Placeholder for Web Audio / Tone.js
+
+
+Comment these clearly.
+
+12. Deliverables Checklist
+
+ Fully runnable Vite project
+
+ Clear README with camera permission note
+
+ Static build passes
+
+ No runtime errors without camera input
+
+ Tasks A/B/C & VTT all completable
+
+13. Design Intent (Do Not Skip – Important for Portfolio)
+
+This game intentionally avoids photorealistic accuracy.
+Instead, it focuses on embodied perception, scale transition,
+and gesture-based epistemic exploration of invisible biological worlds.
