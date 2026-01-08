@@ -26,6 +26,16 @@ A hand-gesture controlled microscopic exploration game.
    ```
    The static site will be in `dist/`.
 
+## Deployment (Vercel)
+
+1. Import the repo on Vercel.
+2. Build command: `npm run build`
+3. Output directory: `dist`
+
+Notes:
+- Camera access requires HTTPS or localhost.
+- If you embed the page in an iframe, the parent must allow camera permissions.
+
 ## How to Play
 
 ### Controls

@@ -4,7 +4,6 @@ export class AudioEngine {
         this.ctx = null;
         this.masterGain = null;
         this.isInitialized = false;
-        this.ready = false;
 
         // Oscillators
         this.l1Drone = null;
@@ -15,46 +14,37 @@ export class AudioEngine {
     init() {
         if (this.isInitialized) return;
 
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.ctx = new AudioContext();
-            this.masterGain = this.ctx.createGain();
-            this.masterGain.gain.value = 0.5;
-            this.masterGain.connect(this.ctx.destination);
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioContext();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.value = 0.5;
+        this.masterGain.connect(this.ctx.destination);
 
-            // Drone (L1)
-            this.l1Drone = this.ctx.createOscillator();
-            this.l1Drone.type = 'sine';
-            this.l1Drone.frequency.value = 60; // Low hum
+        // Drone (L1)
+        this.l1Drone = this.ctx.createOscillator();
+        this.l1Drone.type = 'sine';
+        this.l1Drone.frequency.value = 60; // Low hum
 
-            this.l1Gain = this.ctx.createGain();
-            this.l1Gain.gain.value = 0.0;
+        this.l1Gain = this.ctx.createGain();
+        this.l1Gain.gain.value = 0.0;
 
-            // LFO for modulation
-            this.lFO = this.ctx.createOscillator();
-            this.lFO.frequency.value = 0.5; // Hz
-            this.lFO.connect(this.l1Gain.gain);
+        // LFO for modulation
+        this.lFO = this.ctx.createOscillator();
+        this.lFO.frequency.value = 0.5; // Hz
+        this.lFO.connect(this.l1Gain.gain);
 
-            this.l1Drone.connect(this.l1Gain);
-            this.l1Gain.connect(this.masterGain);
+        this.l1Drone.connect(this.l1Gain);
+        this.l1Gain.connect(this.masterGain);
 
-            this.l1Drone.start();
-            this.lFO.start();
+        this.l1Drone.start();
+        this.lFO.start();
 
-            this.isInitialized = true;
-            this.ready = true;
-        } catch (e) {
-            console.error("Audio initialization failed:", e);
-        }
+        this.isInitialized = true;
     }
 
     resume() {
-        if (this.ctx) {
-            if (this.ctx.state === 'suspended') {
-                this.ctx.resume().catch(e => {
-                    console.error("Failed to resume audio context:", e);
-                });
-            }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
         }
     }
 

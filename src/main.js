@@ -23,30 +23,52 @@ class App {
             this.world = new WorldManager(document.getElementById('canvas-container'));
             this.world.setUI(this.ui);
             this.tracker = new HandTracker(document.getElementById('video-element'));
+            this.started = false;
+            this.starting = false;
 
 
             // Unlock Audio & Start Camera
             // Initial Prompt
-            this.ui.updateTask("READY", "Click anywhere to enable Camera & Audio");
+            this.ui.updateTask("READY", "Click or tap to enable Camera & Audio");
 
             // Unlock Audio & Start Camera
-            document.body.addEventListener('click', async () => {
-                this.ui.updateTask("INITIALIZING", "Starting Camera...");
+            const startExperience = async () => {
+                if (this.started || this.starting) return;
+                this.starting = true;
+                this.ui.updateTask("INITIALIZING", "Requesting camera permission...");
+
                 try {
-                    // Initialize audio first to unlock audio context
-                    if (!this.audio.isInitialized) {
-                        this.audio.init();
-                        // Resume audio context if suspended (required for user interaction)
-                        this.audio.resume();
+                    let audioWarning = null;
+                    if (!this.audio.ready) {
+                        try {
+                            await this.audio.init();
+                        } catch (err) {
+                            audioWarning = err instanceof Error ? err.message : String(err);
+                        }
                     }
-                    
+
                     await this.tracker.start();
-                    this.ui.updateTask("EXPLORE", "Use gestures to interact");
+                    const hint = audioWarning
+                        ? `Use gestures to interact (audio blocked: ${audioWarning})`
+                        : "Use gestures to interact";
+                    this.ui.updateTask("EXPLORE", hint);
+                    this.started = true;
                 } catch (err) {
-                    this.ui.updateTask("ERROR", "Camera failed: " + err.message);
-                    console.error("Initialization error:", err);
+                    const message = err instanceof Error ? err.message : String(err);
+                    this.ui.updateTask("ERROR", message + " (click to retry)");
+                    this.starting = false;
                 }
-            }, { once: true });
+            };
+
+            ['pointerdown', 'click'].forEach((eventName) => {
+                document.body.addEventListener(eventName, startExperience);
+            });
+
+            window.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    startExperience();
+                }
+            });
 
             this.lastTime = performance.now();
             this.loop();
