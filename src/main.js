@@ -36,6 +36,7 @@ class App {
                 if (this.started || this.starting) return;
                 this.starting = true;
                 this.ui.updateTask("INITIALIZING", "Requesting camera permission...");
+                this.audio.unlock();
 
                 try {
                     let audioWarning = null;
